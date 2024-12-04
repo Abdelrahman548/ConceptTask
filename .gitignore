@@ -1,0 +1,54 @@
+# Build results
+bin/
+obj/
+out/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Auto-generated files
+*.vs/
+.vscode/
+.vs/
+
+# Logs
+*.log
+
+# Package directories
+**/node_modules/
+packages/
+.nuget/
+*.nupkg
+*.snupkg
+
+# Tooling files
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Rider & JetBrains
+.idea/
+*.sln.iml
+*.sln.ide.*
+.idea_modules/
+
+# ASP.NET temporary files
+.ionide/
+
+# DotNet Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+*.pidb
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Resharper
+_ReSharper.Caches/
+
+.ionide/
