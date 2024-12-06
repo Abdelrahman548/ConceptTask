@@ -24,7 +24,7 @@ type Task(id: int, description: string, dueDate: System.DateTime, priority: Prio
     member this.status with get() = taskStatus and set(value) = taskStatus <- value
 
     member this.Describe() = 
-        printf "Task ID: %d\nDescription: %s\nDue Date: %A\nPriority: %A\nStatus: %A\n" this.id this.description this.dueDate this.priority this.status
+        $"""Task ID: {this.id}, Description: {this.description}, Due Date: {this.dueDate.ToString("yyyy-MM-dd")}, Priority: {this.priority}, Status: {this.status}"""
 
     member this.Complete() = 
         if this.status <> Status.Overdue then this.status <- Status.Completed

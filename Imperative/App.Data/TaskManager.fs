@@ -26,7 +26,8 @@ type TaskManager() =
         let updatedTasks = ResizeArray()
         for task in tasks do
             if task.id = id then
-                updatedTasks.Add(task.Complete())
+                task.Complete()
+                updatedTasks.Add(task)
             else
                 updatedTasks.Add(task)
         tasks <- List.ofSeq updatedTasks
@@ -35,7 +36,8 @@ type TaskManager() =
         let updatedTasks = ResizeArray()
         for task in tasks do
             if task.dueDate <= System.DateTime.Now then
-                updatedTasks.Add(task.Overdue())
+                task.Overdue()
+                updatedTasks.Add(task)
             else
                 updatedTasks.Add(task)
         tasks <- List.ofSeq updatedTasks
@@ -44,7 +46,8 @@ type TaskManager() =
         let updatedTasks = ResizeArray()
         for task in tasks do
             if task.id = id then
-                updatedTasks.Add(task.UpdatePriority(newPriority))
+                task.UpdatePriority(newPriority)
+                updatedTasks.Add(task)
             else
                 updatedTasks.Add(task)
         tasks <- List.ofSeq updatedTasks
@@ -62,6 +65,19 @@ type TaskManager() =
     member this.sortTasksDec (sortFunc: Task -> 'a)=
         tasks |> List.sortByDescending sortFunc
 
+    member this.searchTask (id: int) =
+        let mutable isFound = false
+        for task in tasks do
+            if task.id = id then
+                isFound <- true
+        isFound
+
+    member this.getTask(id: int) =
+        let mutable t = Unchecked.defaultof<Task>
+        for task in tasks do
+            if task.id = id then
+                t <- task
+        t
 
 open Newtonsoft.Json
 open System.IO
