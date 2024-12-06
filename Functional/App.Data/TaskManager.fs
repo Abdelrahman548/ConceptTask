@@ -10,7 +10,8 @@ type TaskManager(tasks: Task list, currentId: int) =
     member this.GetAllTasks() = tasks
 
     member this.AddTask(description: string, dueDate: System.DateTime, priority: Priority) =
-        let newTask = Task(currentId + 1, description, dueDate, priority, Status.Pending)
+        let status = if dueDate > System.DateTime.Now then Status.Pending else Status.Overdue
+        let newTask = Task(currentId + 1, description, dueDate, priority, status)
         TaskManager(newTask :: tasks, currentId + 1)
 
     member this.DeleteTask(id: int) =
@@ -18,31 +19,35 @@ type TaskManager(tasks: Task list, currentId: int) =
         TaskManager(updatedTasks, currentId)
 
     member this.CompleteTask(id: int) =
-        let updatedTasks = 
-            tasks 
-            |> List.MyMap (fun t -> if t.id = id then t.Complete() else t)
+        let updatedTasks =  MyMap (fun t -> if t.id = id then t.Complete() else t) tasks
         TaskManager(updatedTasks, currentId)
 
     member this.OverdueTasks() =
-        let updatedTasks = 
-            tasks 
-            |> List.MyMap (fun t -> if t.dueDate <= System.DateTime.Now then t.Overdue() else t)
+        let updatedTasks = MyMap (fun t -> if t.dueDate <= System.DateTime.Now then t.Overdue() else t) tasks
         TaskManager(updatedTasks, currentId)
 
     member this.UpdateTaskPriority(id: int, newPriority: Priority) =
-        let updatedTasks = 
-            tasks 
-            |> List.MyMap (fun t -> if t.id = id then t.UpdatePriority(newPriority) else t)
+        let updatedTasks = MyMap (fun t -> if t.id = id then t.UpdatePriority(newPriority) else t) tasks
         TaskManager(updatedTasks, currentId)
 
     member this.FilterTasks(filterFunc: Task -> bool) =
-        tasks |> List.MyFilter filterFunc
+        MyFilter filterFunc tasks
 
-    member this.SortTasks(sortFunc: Task -> 'a) =
-        tasks |> List.MySortAscending sortFunc
+    member this.SortTasks(sortAttribute: Task -> 'a) =
+        MySortAscending sortAttribute tasks
 
-    member this.SortTasksDec(sortFunc: Task -> 'a) =
-        tasks |> List.MySortDescending sortFunc
+    member this.SortTasksDec(sortAttribute: Task -> 'a) =
+        MySortDescending sortAttribute tasks
+
+    member this.SearchTaskExists(id: int) =
+        let res = this.FilterTasks(fun t -> t.id = id)
+        if res.IsEmpty then false
+        else true
+
+    member this.SearchTask(id: int) =
+        let res = this.FilterTasks(fun t -> t.id = id)
+        res
+
 
 open Newtonsoft.Json
 open System.IO

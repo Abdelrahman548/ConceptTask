@@ -1,48 +1,152 @@
 ﻿open System
 open App.Data
+open ListExtensions
+
+
+let displayMenu () =
+    printfn "========================================================"
+    printfn "Task Manager"
+    printfn "1. Add Task"
+    printfn "2. Delete Task"
+    printfn "3. Complete Task"
+    printfn "4. Update Task Priority"
+    printfn "5. Show Task"
+    printfn "6. Show Current Tasks"
+    printfn "7. Show Overdue Tasks"
+    printfn "8. Save & Exit"
+    printfn "========================================================"
+
+
+let numOfDays = 1
+
+let printTask (task: Task) =
+        if task.status = Status.Overdue then
+            Console.ForegroundColor <- ConsoleColor.DarkMagenta
+        elif task.status = Status.Completed then
+            Console.ForegroundColor <- ConsoleColor.Green
+        elif (task.dueDate - DateTime.Now).TotalDays < float numOfDays then
+            Console.ForegroundColor <- ConsoleColor.Red
+        else
+            Console.ForegroundColor <- ConsoleColor.Yellow
+        printfn "\t{ %s }" (task.Describe())
+        Console.ForegroundColor <- ConsoleColor.White
+
+
+let handleAddTask (taskManager: TaskManager) =
+    printf "Enter description: "
+    let description = Console.ReadLine()
+    printf "Enter due date (YYYY-MM-DD): "
+    let dueDate = DateTime.Parse(Console.ReadLine())
+    printf "Enter priority (High=0, Normal=1, Low=2): "
+    let priority = Enum.Parse<Priority>(Console.ReadLine())
+    let updatedManager = taskManager.AddTask(description, dueDate, priority)
+    printfn "Task added successfully."
+    updatedManager
+
+let handleDeleteTask (taskManager: TaskManager) =
+    printf "Enter Task ID to delete: "
+    let id = int(Console.ReadLine())
+    if taskManager.SearchTaskExists(id) then
+        let updatedManager = taskManager.DeleteTask(id)
+        printfn "Task deleted successfully."
+        updatedManager
+    else
+        printfn "Invalid ID."
+        taskManager
+
+let handleCompleteTask (taskManager: TaskManager) =
+    printf "Enter Task ID to complete: "
+    let id = int(Console.ReadLine())
+    if taskManager.SearchTaskExists(id) then
+        let updatedManager = taskManager.CompleteTask(id)
+        printfn "Task completed successfully."
+        updatedManager
+    else
+        printfn "Invalid ID."
+        taskManager
+
+let handleUpdatePriority (taskManager: TaskManager) =
+    printf "Enter Task ID to Update Priority: "
+    let id = int(Console.ReadLine())
+    if taskManager.SearchTaskExists(id) then
+        printf "Enter priority (High=0, Normal=1, Low=2): "
+        let priority = Enum.Parse<Priority>(Console.ReadLine())
+        let updatedManager = taskManager.UpdateTaskPriority(id, priority)
+        printfn "Task priority updated successfully."
+        updatedManager
+    else
+        printfn "Invalid ID."
+        taskManager
+
+let handleShowTask (taskManager: TaskManager) =
+    printf "Enter Task ID : "
+    let id = int(Console.ReadLine())
+    if taskManager.SearchTaskExists(id) then
+        match taskManager.SearchTask(id) with
+        | [] -> printfn "Task not found"
+        | H::T -> printfn "%s" (H.Describe())
+    else
+        printfn "Invalid ID."
+    taskManager
+
+let handleShowTasks (taskManager: TaskManager) =
+    printfn "All Tasks:"
+    let allTasks = taskManager.GetAllTasks()
+    let filteredTasks = MyFilter (fun t -> t.status <> Status.Overdue) allTasks
+    MyIter printTask filteredTasks
+    taskManager
+
+let handleShowOverdueTasks (taskManager: TaskManager) =
+    printfn "Overdue Tasks:"
+    let overdueTasks = MyFilter(fun t -> t.status = Status.Overdue) (taskManager.GetAllTasks())
+    MyIter printTask overdueTasks
+    taskManager
+
+let handleSaveAndExit (taskManager: TaskManager) filePath =
+    FileOperations.saveTasksToFile (taskManager.GetAllTasks()) filePath
+    printfn "Exiting... Goodbye!"
+    taskManager
+
+let rec runApp taskManager =
+    displayMenu()
+    printf "Enter your choice: "
+    match Console.ReadLine() with
+    | "1" -> 
+        let updatedManager = handleAddTask taskManager
+        runApp updatedManager
+    | "2" -> 
+        let updatedManager = handleDeleteTask taskManager
+        runApp updatedManager
+    | "3" -> 
+        let updatedManager = handleCompleteTask taskManager
+        runApp updatedManager
+    | "4" -> 
+        let updatedManager = handleUpdatePriority taskManager
+        runApp updatedManager
+    | "5" -> 
+        let _ = handleShowTask taskManager
+        runApp taskManager
+    | "6" -> 
+        let taskManagerAfterOverdue = taskManager.OverdueTasks()
+        let _ = handleShowTasks taskManagerAfterOverdue
+        runApp taskManager
+    | "7" -> 
+        let _ = handleShowOverdueTasks taskManager
+        runApp taskManager
+    | "8" -> 
+        handleSaveAndExit taskManager
+    | _ -> 
+        printfn "Invalid choice, please try again."
+        runApp taskManager
 
 [<EntryPoint>]
 let main argv =
-    // Initializing New Tasks
-    let task1 = Task(1, "Finish F# project", DateTime(2024, 12, 10), Priority.High, Status.Pending)
-    let task2 = Task(2, "Prepare for exam", DateTime(2024, 12, 5), Priority.Normal, Status.Pending)
-    let task3 = Task(3, "Buy groceries", DateTime(2024, 12, 3), Priority.Low, Status.Pending)
+    let filePath = "MyTasks.json"
+    let taskManager = TaskManager([], 0)
+    let myTasks = FileOperations.loadTasksFromFile(filePath)
+    let taskManagerWithTasks = if not myTasks.IsEmpty then taskManager.SetTasks(myTasks) else taskManager
 
-    // Initializing a Task Manager
-    let manager = TaskManager([task1; task2; task3], 3)
+    let taskManagerAfterOverdue = taskManagerWithTasks.OverdueTasks()
 
-    // Getting All Tasks
-    printfn "Initial Tasks:"
-    manager.GetAllTasks() |> List.iter (fun t -> t.Describe())
-
-    // Adding New Task
-    let manager = manager.AddTask("Read a book", DateTime(2024, 12, 15), Priority.Low)
-    printfn "\nAfter Adding a Task:"
-    manager.GetAllTasks() |> List.iter (fun t -> t.Describe())
-
-    // Completing a Task
-    let manager = manager.CompleteTask(2)
-    printfn "\nAfter Completing Task 2:"
-    manager.GetAllTasks() |> List.iter (fun t -> t.Describe())
-
-    // Updating Priority for a Task
-    let manager = manager.UpdateTaskPriority(1, Priority.Low)
-    printfn "\nAfter Updating Priority of Task 1:"
-    manager.GetAllTasks() |> List.iter (fun t -> t.Describe())
-
-    // Filter Based on Completed Tasks
-    let completedTasks = manager.FilterTasks(fun t -> t.status = Status.Completed)
-    printfn "\nCompleted Tasks:"
-    completedTasks |> List.iter (fun t -> t.Describe())
-
-    // Sort Based on High Prioirity
-    let sortedTasks = manager.SortTasks(fun t -> t.priority)
-    printfn "\nTasks Sorted by Priority:"
-    sortedTasks |> List.iter (fun t -> t.Describe())
-
-    // Checking Overdue Tasks
-    let manager = manager.OverdueTasks()
-    printfn "\nAfter Checking Overdue Tasks:"
-    manager.GetAllTasks() |> List.iter (fun t -> t.Describe())
-
-    0 // Return code
+    let _ = runApp taskManagerAfterOverdue filePath
+    0
