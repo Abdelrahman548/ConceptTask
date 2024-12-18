@@ -76,102 +76,134 @@ let main argv =
     while running do
         displayMenu()
         printf "Enter your choice: "
-        match Console.ReadLine() with
-        | "1" -> 
-            printf "Enter description: "
-            let description = Console.ReadLine()
-            printf "Enter due date (YYYY-MM-DD HH:mm): "
-            let dueDate = DateTime.ParseExact(Console.ReadLine(),dateFormat, null, System.Globalization.DateTimeStyles.None )
-            printf "Enter priority (High=0, Normal=1, Low=2): "
-            let priority = Enum.Parse<Priority>(Console.ReadLine())
+        let input = Console.ReadLine()
+
+        if (input = "1") then
+            let mutable result = false
+            let mutable description = ""
+            let mutable dueDate = DateTime.Now
+            let mutable priority = Priority.Normal
+            while(result <> true) do
+                printf "Enter description: "
+                description <- Console.ReadLine()
+                if (description <> "") then
+                    result <- true
+            
+            result <- false
+            while (result <> true) do
+                printf "Enter due date (YYYY-MM-DD HH:mm): "
+                result <- DateTime.TryParseExact(Console.ReadLine(),dateFormat, null, System.Globalization.DateTimeStyles.None, &dueDate )
+
+            result <- false
+            while (result <> true) do
+                 printf "Enter priority (High=0, Normal=1, Low=2): "
+                 result <- Enum.TryParse<Priority>(Console.ReadLine(),&priority) && Enum.IsDefined priority
+
+           
+            
             taskManager.AddTask(description, dueDate, priority)
             printfn "Task added successfully."
             printfn ""
-        | "2" ->
-            printf "Enter Task ID to delete: "
-            let id = int(Console.ReadLine())
+        elif(input ="2") then
+            let mutable result = false
+            let mutable id = 0
+            while (result <> true) do
+                printf "Enter Task ID to Update Priority: "
+                result <- Int32.TryParse(Console.ReadLine(),&id)
             if isTaskExist(id) then
                 taskManager.DeleteTask(id)
                 printfn "Task deleted successfully."
             else
                 printfn "Invalid ID."
             printfn ""
-        | "3" ->
-            printf "Enter Task ID to complete: "
-            let id = int(Console.ReadLine())
+        elif(input ="3") then
+            let mutable result = false
+            let mutable id = 0
+            while (result <> true) do
+                printf "Enter Task ID to Update Priority: "
+                result <- Int32.TryParse(Console.ReadLine(),&id)
             if isTaskExist(id) then
                 taskManager.CompleteTask(id)
                 printfn "Task completed successfully."
             else
                 printfn "Invalid ID."
             printfn ""
-        | "4" ->
-            printf "Enter Task ID to Update Priority: "
-            let id = int(Console.ReadLine())
+        elif(input ="4") then
+            let mutable result = false
+            let mutable priority = Priority.Normal
+            let mutable id  = 0
+            while (result <> true) do
+                printf "Enter Task ID to Update Priority: "
+                result <- Int32.TryParse(Console.ReadLine(),&id)
             if isTaskExist(id) then
-                printf "Enter priority (High=0, Normal=1, Low=2): "
-                let priority = Enum.Parse<Priority>(Console.ReadLine())
+                result <- false
+                while (result <> true) do
+                    printf "Enter priority (High=0, Normal=1, Low=2): "
+                    result <- Enum.TryParse<Priority>(Console.ReadLine(),&priority) && Enum.IsDefined priority
                 taskManager.UpdateTaskPriority(id, priority)
                 printfn "Priority updated successfully."
             else
                 printfn "Invalid ID."
             printfn ""
-        | "5" ->
-            printf "Enter Task ID: "
-            let id = int(Console.ReadLine())
+        elif(input ="5") then
+            let mutable result = false
+            let mutable id = 0
+            while (result <> true) do
+                printf "Enter Task ID to Update Priority: "
+                result <- Int32.TryParse(Console.ReadLine(),&id)
             if isTaskExist(id) then
                 let task = taskManager.getTask(id)
                 printTask(task)
             else
                 printfn "Invalid ID."
             printfn ""
-        | "6" ->
+        elif(input ="6") then
             printfn "Pending Tasks:"
             let pendingTasks = taskManager.PendingTasks()
             for task in pendingTasks do
                 printTask(task)
             printfn ""
-        | "7" ->
+        elif(input ="7") then
             printfn "Completed Tasks:"
             let completedTasks = taskManager.CompletedTasks()
             for task in completedTasks do
                 printTask(task)
             printfn ""
-        | "8" ->
+        elif(input ="8") then
             printfn "Overdue Tasks:"
             let overdueTasks = taskManager.OverduedTasks()
             for task in overdueTasks do
                 printTask(task)
             printfn ""
-        | "9" ->
+        elif(input ="9") then
             printfn "Sorted Tasks:"
             let sortedTasks = taskManager.sortTasksAscByDueDate()
             for task in sortedTasks do
                 printTask(task)
             printfn ""
-        | "10" ->
+        elif(input ="10") then
             printfn "Sorted Tasks:"
             let sortedTasks = taskManager.sortTasksDescByDueDate()
             for task in sortedTasks do
                 printTask(task)
             printfn ""
-        | "11" ->
+        elif(input = "11") then
             printfn "Sorted Tasks:"
             let sortedTasks = taskManager.sortTasksAscByPriority()
             for task in sortedTasks do
                 printTask(task)
             printfn ""
-        | "12" ->
+        elif(input ="12") then
             printfn "Sorted Tasks:"
             let sortedTasks = taskManager.sortTasksDescByPriority()
             for task in sortedTasks do
                 printTask(task)
             printfn ""
-        | "13" ->
+        elif(input ="13") then
             FileOperations.saveTasksToFile (taskManager.GetAllTasks()) (filePath)
             printfn "Exiting... Goodbye!"
             running <- false
-        | _ -> 
+        else
             printfn "Invalid choice, please try again."
     cancellationTokenSource.Cancel()
     0

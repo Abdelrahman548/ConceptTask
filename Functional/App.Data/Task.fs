@@ -21,8 +21,9 @@ type Task = {
 
 module TaskCRUD = 
     let completeTask task =
-        if task.status = Status.Overdue then task
-        else { task with status = Status.Completed }
+        match task.status with
+        | Status.Overdue -> task
+        | _ -> { task with status = Status.Completed }
 
     let updatePriority task newPriority =
         { task with priority = newPriority }
@@ -35,11 +36,14 @@ module TaskCRUD =
 
 module ListExtensions = 
     // myMaxID for Task list
-    let rec MyMaxID(tasks: Task List,maxId: int) =
+    let rec MyMaxID(tasks: Task List, maxId: int) =
         match tasks with
         | [] -> maxId
         | task :: tail -> 
-            let newMaxId= if task.id > maxId then task.id else maxId
+            let newMaxId =
+                match task.id > maxId with
+                | true -> task.id
+                | false -> maxId
             MyMaxID (tail, newMaxId)
     
     // myMap for Task list
@@ -56,10 +60,9 @@ module ListExtensions =
             match lst with
             | [] -> []
             | head :: tail ->
-                if func head then
-                    head :: filter tail
-                else
-                    filter tail
+                match func head with
+                | true -> head :: filter tail
+                | false -> filter tail
         filter lst
 
     let MyIter (func: Task -> unit) (lst: Task list) : unit =
@@ -71,17 +74,15 @@ module ListExtensions =
                 iter tail
         iter lst
 
-
     // mySort for Task list with dynamic comparison
     let MySort (compare: Task -> Task -> int) (lst: Task list) : Task list =
         let rec insert x sortedList =
             match sortedList with
             | [] -> [x]
             | head :: tail ->
-                if compare x head <= 0 then
-                    x :: sortedList
-                else
-                    head :: insert x tail
+                match compare x head <= 0 with
+                | true -> x :: sortedList
+                | false -> head :: insert x tail
 
         let rec sort lst =
             match lst with

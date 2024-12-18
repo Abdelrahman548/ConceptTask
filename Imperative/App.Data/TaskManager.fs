@@ -209,10 +209,11 @@ module FileOperations =
         try
             if File.Exists(filePath) then
                 let json = File.ReadAllText(filePath)
-                let tasks = JsonConvert.DeserializeObject<ResizeArray<TaskR>>(json)
-                tasks
+                JsonConvert.DeserializeObject<ResizeArray<TaskR>>(json)
             else
-                printfn "File not found."; ResizeArray<TaskR>()
-        with
-        | ex -> printfn "Error loading tasks from file: %s" ex.Message; ResizeArray<TaskR>()
+                printfn "File not found."
+                ResizeArray<TaskR>()
+        with ex ->
+            printfn "Error loading tasks from file: %s" ex.Message
+            ResizeArray<TaskR>()
 

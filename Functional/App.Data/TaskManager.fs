@@ -9,13 +9,17 @@ type TaskManager = {
 
 module TaskManagerOperations =
     open TaskCRUD
+
     let setTasks manager newTasks =
         let newId = MyMaxID (newTasks, manager.currentId)
         { manager with tasks = newTasks; currentId = newId }
 
     let addTask manager description dueDate priority =
-        let status = if dueDate > System.DateTime.Now then Status.Pending else Status.Overdue
-        let newTask = { id = manager.currentId + 1; description = description; dueDate = dueDate; priority = priority; status = status ; isdead = false}
+        let status =
+            match dueDate > System.DateTime.Now with
+            | true -> Status.Pending
+            | false -> Status.Overdue
+        let newTask = { id = manager.currentId + 1; description = description; dueDate = dueDate; priority = priority; status = status; isdead = false }
         { manager with tasks = newTask :: manager.tasks; currentId = manager.currentId + 1 }
 
     let deleteTask manager id =
@@ -23,27 +27,43 @@ module TaskManagerOperations =
         { manager with tasks = updatedTasks }
 
     let completeTask manager id =
-        let updatedTasks = MyMap (fun t -> if t.id = id then completeTask t else t) manager.tasks
+        let updatedTasks = 
+            MyMap (fun t -> 
+                match t.id = id with
+                | true -> completeTask t
+                | false -> t
+            ) manager.tasks
         { manager with tasks = updatedTasks }
 
     let overdueTasks manager =
-        let updatedTasks = MyMap (fun t -> if t.dueDate <= System.DateTime.Now && t.status <> Status.Completed then markOverdue t else t) manager.tasks
+        let updatedTasks = 
+            MyMap (fun t -> 
+                match t.dueDate <= System.DateTime.Now && t.status <> Status.Completed with
+                | true -> markOverdue t
+                | false -> t
+            ) manager.tasks
         { manager with tasks = updatedTasks }
 
     let updateTaskPriority manager id newPriority =
-        let updatedTasks = MyMap (fun t -> if t.id = id then updatePriority t newPriority else t) manager.tasks
+        let updatedTasks = 
+            MyMap (fun t -> 
+                match t.id = id with
+                | true -> updatePriority t newPriority
+                | false -> t
+            ) manager.tasks
         { manager with tasks = updatedTasks }
 
     let filterTasks manager filterFunc =
         MyFilter filterFunc manager.tasks
 
-    let searchTaskExists(manager: TaskManager,id: int) =
-        let res = MyFilter (fun t -> t.id = id)manager.tasks
-        if res.IsEmpty then false
-        else true
-    let searchTask(manager: TaskManager,id: int) =
-        let res = MyFilter (fun t -> t.id = id)manager.tasks
-        res
+    let searchTaskExists(manager: TaskManager, id: int) =
+        let res = MyFilter (fun t -> t.id = id) manager.tasks
+        match res.IsEmpty with
+        | true -> false
+        | false -> true
+
+    let searchTask(manager: TaskManager, id: int) =
+        MyFilter (fun t -> t.id = id) manager.tasks
 
 open Newtonsoft.Json
 open System.IO
@@ -58,13 +78,16 @@ module FileOperations =
 
     let loadTasksFromFile (filePath: string) =
         try
-            if File.Exists(filePath) then
+            match File.Exists(filePath) with
+            | true ->
                 let json = File.ReadAllText(filePath)
                 let tasks = JsonConvert.DeserializeObject<Task list>(json)
                 tasks
-            else
+            | false ->
                 let emptyListJson = JsonConvert.SerializeObject([])
                 File.WriteAllText(filePath, emptyListJson)
                 []
         with
-        | ex -> printfn "Error loading tasks from file: %s" ex.Message; []
+        | ex -> 
+            printfn "Error loading tasks from file: %s" ex.Message
+            []

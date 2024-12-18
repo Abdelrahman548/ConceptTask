@@ -28,73 +28,131 @@ let numOfDays = 1
 let dateFormat = "yyyy-MM-dd HH:mm"
 
 let printTask (task: Task) =
-        if task.status = Status.Overdue then
-            Console.ForegroundColor <- ConsoleColor.DarkMagenta
-        elif task.status = Status.Completed then
-            Console.ForegroundColor <- ConsoleColor.Green
-        elif (task.dueDate - DateTime.Now).TotalDays < float numOfDays then
-            Console.ForegroundColor <- ConsoleColor.Red
-        else
-            Console.ForegroundColor <- ConsoleColor.Yellow
-        printfn "\t{ %s }" (describe task)
-        Console.ForegroundColor <- ConsoleColor.White
+    match task.status with
+    | Status.Overdue -> Console.ForegroundColor <- ConsoleColor.DarkMagenta
+    | Status.Completed -> Console.ForegroundColor <- ConsoleColor.Green
+    | _ when (task.dueDate - DateTime.Now).TotalDays < float numOfDays -> Console.ForegroundColor <- ConsoleColor.Red
+    | _ -> Console.ForegroundColor <- ConsoleColor.Yellow
+
+    printfn "\t{ %s }" (describe task)
+    Console.ForegroundColor <- ConsoleColor.White
+
 
 
 let handleAddTask (taskManager: TaskManager) =
     printf "Enter description: "
     let description = Console.ReadLine()
+
+    let dateFormat = "yyyy-MM-dd HH:mm"
+
     printf "Enter due date (YYYY-MM-DD HH:mm): "
-    let dueDate = DateTime.ParseExact(Console.ReadLine(),dateFormat, null, System.Globalization.DateTimeStyles.None )
-    printf "Enter priority (High=0, Normal=1, Low=2): "
-    let priority = Enum.Parse<Priority>(Console.ReadLine())
-    let updatedManager = addTask taskManager description dueDate priority
-    printfn "Task added successfully."
-    updatedManager
+    let inputDate = Console.ReadLine()
+    match System.DateTime.TryParseExact(inputDate, dateFormat, null, System.Globalization.DateTimeStyles.None) with
+    | (true, dueDate) ->
+
+        printf "Enter priority (High=0, Normal=1, Low=2): "
+        match System.Int32.TryParse(Console.ReadLine()) with
+        | (true, priorityInt) when priorityInt >= 0 && priorityInt <= 2 ->
+            let priority = enum<Priority>(priorityInt)
+            let updatedManager = addTask taskManager description dueDate priority
+            printfn "Task added successfully."
+            updatedManager
+        | _ ->
+
+            printfn "Invalid priority. Please enter a valid priority (0=High, 1=Normal, 2=Low)."
+            taskManager
+    | (false, _) ->
+
+        printfn "Invalid date format. Please use the format YYYY-MM-DD HH:mm."
+        taskManager
+
 
 let handleDeleteTask (taskManager: TaskManager) =
     printf "Enter Task ID to delete: "
-    let id = int(Console.ReadLine())
-    if searchTaskExists(taskManager , id) then
-        let updatedManager = deleteTask taskManager  id
-        printfn "Task deleted successfully."
-        updatedManager
-    else
-        printfn "Invalid ID."
+    let input = Console.ReadLine()
+
+
+    match System.Int32.TryParse(input) with
+    | (true, id) -> 
+
+        match searchTaskExists(taskManager, id) with
+        | true ->
+            let updatedManager = deleteTask taskManager id
+            printfn "Task deleted successfully."
+            updatedManager
+        | false ->
+            printfn "Invalid ID."
+            taskManager
+    | (false, _) -> 
+
+        printfn "Invalid input. Please enter a valid integer."
         taskManager
 
 let handleCompleteTask (taskManager: TaskManager) =
     printf "Enter Task ID to complete: "
-    let id = int(Console.ReadLine())
-    if searchTaskExists(taskManager , id) then
-        let updatedManager = completeTask taskManager id
-        printfn "Task completed successfully."
-        updatedManager
-    else
-        printfn "Invalid ID."
+    let input = Console.ReadLine()
+
+    match System.Int32.TryParse(input) with
+    | (true, id) -> 
+        match searchTaskExists(taskManager, id) with
+        | true ->
+            let updatedManager = completeTask taskManager id
+            printfn "Task completed successfully."
+            updatedManager
+        | false ->
+            printfn "Invalid ID."
+            taskManager
+    | (false, _) -> 
+        printfn "Invalid input. Please enter a valid integer."
         taskManager
+
 
 let handleUpdatePriority (taskManager: TaskManager) =
     printf "Enter Task ID to Update Priority: "
-    let id = int(Console.ReadLine())
-    if searchTaskExists(taskManager , id) then
-        printf "Enter priority (High=0, Normal=1, Low=2): "
-        let priority = Enum.Parse<Priority>(Console.ReadLine())
-        let updatedManager = updateTaskPriority taskManager id priority
-        printfn "Task priority updated successfully."
-        updatedManager
-    else
-        printfn "Invalid ID."
+    let inputId = Console.ReadLine()
+
+    // Try to parse the task ID as an integer
+    match System.Int32.TryParse(inputId) with
+    | (true, id) -> 
+        if searchTaskExists(taskManager, id) then
+            printf "Enter priority (High=0, Normal=1, Low=2): "
+            let inputPriority = Console.ReadLine()
+
+            match System.Enum.TryParse<Priority>(inputPriority) with
+            | (true, priority) when System.Enum.IsDefined(typeof<Priority>, priority) ->
+
+                let updatedManager = updateTaskPriority taskManager id priority
+                printfn "Task priority updated successfully."
+                updatedManager
+            | _ -> 
+
+                printfn "Invalid priority. Please enter a valid priority (0=High, 1=Normal, 2=Low)."
+                taskManager
+        else
+            // If the task doesn't exist
+            printfn "Invalid Task ID."
+            taskManager
+    | (false, _) -> 
+        // If the task ID parsing fails
+        printfn "Invalid Task ID. Please enter a valid integer."
         taskManager
 
 let handleShowTask (taskManager: TaskManager) =
-    printf "Enter Task ID : "
-    let id = int(Console.ReadLine())
-    if searchTaskExists(taskManager , id) then
-        match searchTask(taskManager , id) with
-        | [] -> printfn "Task not found"
-        | H::T -> printfn "%s" (describe H)
-    else
-        printfn "Invalid ID."
+    printf "Enter Task ID: "
+    let input = Console.ReadLine()
+
+    match System.Int32.TryParse(input) with
+    | (true, id) ->
+
+        match searchTaskExists(taskManager, id) with
+        | true ->
+            match searchTask(taskManager, id) with
+            | [] -> printfn "Task not found"
+            | H :: _ -> printfn "%s" (describe H) 
+        | false -> printfn "Invalid ID."
+    | (false, _) -> 
+
+        printfn "Invalid input. Please enter a valid integer."
 
 let handleShowTasks (taskManager: TaskManager) =
     printfn "All Tasks:"
@@ -117,11 +175,10 @@ let handleSortingDescTasks (taskManager: TaskManager, taskAttrbuite: Task -> 'a)
     let sortedTasks = MySortDescending taskAttrbuite taskManager.tasks
     MyIter printTask sortedTasks
 
-let notifyTask(task: Task) = 
-    if task.dueDate <= System.DateTime.Now && task.status <> Status.Completed && task.isdead = false then
-        { task with isdead = true }
-    else
-        task
+let notifyTask (task: Task) =
+    match task.dueDate <= System.DateTime.Now, task.status <> Status.Completed, task.isdead with
+    | true, true, false -> { task with isdead = true }
+    | _ -> task
 
 let handleShowNotifications (taskManager: TaskManager) =
     let filteredTasks = filterTasks taskManager (fun task -> task.dueDate <= System.DateTime.Now && task.status <> Status.Completed && task.isdead = false )
@@ -135,7 +192,6 @@ let handleShowNotifications (taskManager: TaskManager) =
         let updatedTasks = MyMap (notifyTask) taskManager.tasks
         let updatedManager = setTasks taskManager updatedTasks
         updatedManager
-
 
 let handleSaveAndExit (taskManager: TaskManager) filePath =
     FileOperations.saveTasksToFile (taskManager.tasks) filePath
@@ -209,11 +265,14 @@ let main argv =
         currentId = 1000
     }
     let myTasks = FileOperations.loadTasksFromFile(filePath)
-    let taskManagerWithTasks = if not myTasks.IsEmpty then
-                                                setTasks taskManager myTasks 
-                                            else taskManager
+
+    let taskManagerWithTasks =
+        match myTasks.IsEmpty with
+        | false -> setTasks taskManager myTasks
+        | true  -> taskManager
 
     let taskManagerAfterOverdue = overdueTasks taskManagerWithTasks
 
     let _ = runApp taskManagerAfterOverdue filePath
     0
+
