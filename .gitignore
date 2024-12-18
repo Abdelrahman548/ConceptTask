@@ -52,3 +52,5 @@ Thumbs.db
 _ReSharper.Caches/
 
 .ionide/
+
+.fake
