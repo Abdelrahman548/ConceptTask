@@ -10,27 +10,38 @@ type Status =
     | Completed = 1
     | Overdue = 2
 
-type Task(id: int, description: string, dueDate: System.DateTime, priority: Priority, status: Status) =
-    member this.id = id
-    member this.description = description
-    member this.dueDate = dueDate
-    member this.priority = priority
-    member this.status = status
+type Task = {
+    id: int
+    description: string
+    dueDate: System.DateTime
+    priority: Priority
+    status: Status
+    isdead: bool
+}
 
-    member this.Describe() = 
-        $"""Task ID: {this.id}, Description: {this.description}, Due Date: {this.dueDate.ToString("yyyy-MM-dd")}, Priority: {this.priority}, Status: {this.status}"""
+module TaskCRUD = 
+    let completeTask task =
+        if task.status = Status.Overdue then task
+        else { task with status = Status.Completed }
 
-    member this.Complete() = 
-        if this.status = Status.Overdue then this
-        else Task(this.id, this.description, this.dueDate, this.priority, Status.Completed)
+    let updatePriority task newPriority =
+        { task with priority = newPriority }
 
-    member this.UpdatePriority(newPriority: Priority) = 
-        Task(this.id, this.description, this.dueDate, newPriority, this.status)
-
-    member this.Overdue() = 
-        Task(this.id, this.description, this.dueDate, this.priority, Status.Overdue)
+    let markOverdue task =
+        { task with status = Status.Overdue }
+    
+    let describe task =
+        $"""Task ID: {task.id}, Description: {task.description}, Due Date: {task.dueDate.ToString("yyyy-MM-dd HH:mm")}, Priority: {task.priority}, Status: {task.status}"""
 
 module ListExtensions = 
+    // myMaxID for Task list
+    let rec MyMaxID(tasks: Task List,maxId: int) =
+        match tasks with
+        | [] -> maxId
+        | task :: tail -> 
+            let newMaxId= if task.id > maxId then task.id else maxId
+            MyMaxID (tail, newMaxId)
+    
     // myMap for Task list
     let MyMap (func: Task -> 'U) (lst: Task list) : 'U list =
         let rec map lst =

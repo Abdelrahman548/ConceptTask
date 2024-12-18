@@ -2,52 +2,48 @@ namespace App.Data
 
 open ListExtensions
 
-type TaskManager(tasks: Task list, currentId: int) = 
-    member this.SetTasks(newTasks: Task list) = 
-        let newId = newTasks |> List.maxBy (fun t -> t.id) |> fun t -> t.id
-        TaskManager(newTasks, newId)
+type TaskManager = {
+    tasks: Task list
+    currentId: int
+}
 
-    member this.GetAllTasks() = tasks
+module TaskManagerOperations =
+    open TaskCRUD
+    let setTasks manager newTasks =
+        let newId = MyMaxID (newTasks, manager.currentId)
+        { manager with tasks = newTasks; currentId = newId }
 
-    member this.AddTask(description: string, dueDate: System.DateTime, priority: Priority) =
+    let addTask manager description dueDate priority =
         let status = if dueDate > System.DateTime.Now then Status.Pending else Status.Overdue
-        let newTask = Task(currentId + 1, description, dueDate, priority, status)
-        TaskManager(newTask :: tasks, currentId + 1)
+        let newTask = { id = manager.currentId + 1; description = description; dueDate = dueDate; priority = priority; status = status ; isdead = false}
+        { manager with tasks = newTask :: manager.tasks; currentId = manager.currentId + 1 }
 
-    member this.DeleteTask(id: int) =
-        let updatedTasks = tasks |> List.filter (fun task -> task.id <> id)
-        TaskManager(updatedTasks, currentId)
+    let deleteTask manager id =
+        let updatedTasks = MyFilter (fun task -> task.id <> id) manager.tasks
+        { manager with tasks = updatedTasks }
 
-    member this.CompleteTask(id: int) =
-        let updatedTasks =  MyMap (fun t -> if t.id = id then t.Complete() else t) tasks
-        TaskManager(updatedTasks, currentId)
+    let completeTask manager id =
+        let updatedTasks = MyMap (fun t -> if t.id = id then completeTask t else t) manager.tasks
+        { manager with tasks = updatedTasks }
 
-    member this.OverdueTasks() =
-        let updatedTasks = MyMap (fun t -> if t.dueDate <= System.DateTime.Now then t.Overdue() else t) tasks
-        TaskManager(updatedTasks, currentId)
+    let overdueTasks manager =
+        let updatedTasks = MyMap (fun t -> if t.dueDate <= System.DateTime.Now && t.status <> Status.Completed then markOverdue t else t) manager.tasks
+        { manager with tasks = updatedTasks }
 
-    member this.UpdateTaskPriority(id: int, newPriority: Priority) =
-        let updatedTasks = MyMap (fun t -> if t.id = id then t.UpdatePriority(newPriority) else t) tasks
-        TaskManager(updatedTasks, currentId)
+    let updateTaskPriority manager id newPriority =
+        let updatedTasks = MyMap (fun t -> if t.id = id then updatePriority t newPriority else t) manager.tasks
+        { manager with tasks = updatedTasks }
 
-    member this.FilterTasks(filterFunc: Task -> bool) =
-        MyFilter filterFunc tasks
+    let filterTasks manager filterFunc =
+        MyFilter filterFunc manager.tasks
 
-    member this.SortTasks(sortAttribute: Task -> 'a) =
-        MySortAscending sortAttribute tasks
-
-    member this.SortTasksDec(sortAttribute: Task -> 'a) =
-        MySortDescending sortAttribute tasks
-
-    member this.SearchTaskExists(id: int) =
-        let res = this.FilterTasks(fun t -> t.id = id)
+    let searchTaskExists(manager: TaskManager,id: int) =
+        let res = MyFilter (fun t -> t.id = id)manager.tasks
         if res.IsEmpty then false
         else true
-
-    member this.SearchTask(id: int) =
-        let res = this.FilterTasks(fun t -> t.id = id)
+    let searchTask(manager: TaskManager,id: int) =
+        let res = MyFilter (fun t -> t.id = id)manager.tasks
         res
-
 
 open Newtonsoft.Json
 open System.IO
@@ -67,6 +63,8 @@ module FileOperations =
                 let tasks = JsonConvert.DeserializeObject<Task list>(json)
                 tasks
             else
-                printfn "File not found."; []
+                let emptyListJson = JsonConvert.SerializeObject([])
+                File.WriteAllText(filePath, emptyListJson)
+                []
         with
         | ex -> printfn "Error loading tasks from file: %s" ex.Message; []
